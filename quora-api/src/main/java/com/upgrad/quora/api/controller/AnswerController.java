@@ -111,8 +111,11 @@ public class AnswerController {
     private String extractBearerToken(String authorizationCode) {
 
         try {
-
-            return authorizationCode.split("Bearer ")[1]; // will throw Index OOB exception
+            if(authorizationCode!=null && authorizationCode.contains("Bearer ")) {
+                return authorizationCode.split("Bearer ")[1]; // will throw Index OOB exception
+            } else {
+                return authorizationCode;
+            }
 
         } catch (NullPointerException | ArrayIndexOutOfBoundsException aib) {
             // missing authCode

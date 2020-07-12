@@ -1,4 +1,4 @@
-package com.upgrad.quora.service.type;
+package com.upgrad.quora.service.common;
 //Enum for various actions for question and answer
 
 public enum ActionType {

@@ -1,6 +1,5 @@
 package com.upgrad.quora.service.business;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import com.upgrad.quora.service.dao.AnswerDao;
 import com.upgrad.quora.service.dao.QuestionDao;
 import com.upgrad.quora.service.dao.UserDao;
@@ -11,7 +10,7 @@ import com.upgrad.quora.service.entity.UserEntity;
 import com.upgrad.quora.service.exception.AnswerNotFoundException;
 import com.upgrad.quora.service.exception.AuthorizationFailedException;
 import com.upgrad.quora.service.exception.InvalidQuestionException;
-import com.upgrad.quora.service.type.ActionType;
+import com.upgrad.quora.service.common.ActionType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -22,6 +21,7 @@ import java.util.List;
 @Service
 public class AnswerBusinessService {
 
+    public static final String USER_HAS_NOT_SIGNED_IN = "User has not signed in";
     final static String ADMIN_KEY = "admin";
 
     @Autowired
@@ -45,7 +45,13 @@ public class AnswerBusinessService {
         newAnswer.setQuestion(question);
 
         // Authority check
-        UserAuthTokenEntity authToken = userDao.isValidActiveAuthToken(authorizationToken, ActionType.CREATE_ANSWER);
+        UserAuthTokenEntity authToken = userDao.queryAuthToken(authorizationToken);//, ActionType.CREATE_ANSWER);
+        if(authToken == null) {
+            throw new AuthorizationFailedException("ATHR-001", USER_HAS_NOT_SIGNED_IN);
+
+        } else if(authToken.getLogoutAt() != null) {
+            throw new AuthorizationFailedException("ATHR-002", "User is signed out.Sign in first to post an answer");
+        }
         newAnswer.setUser(authToken.getUser());
 
         return answerDao.createAnswer(newAnswer);
@@ -64,7 +70,12 @@ public class AnswerBusinessService {
 
         // Authority check
         // may throw ATHR-001 or ATHR-002
-        UserAuthTokenEntity authToken = userDao.isValidActiveAuthToken(authorization, ActionType.EDIT_ANSWER);
+        UserAuthTokenEntity authToken = userDao.queryAuthToken(authorization);//, ActionType.CREATE_ANSWER);
+        if(authToken == null) {
+            throw new AuthorizationFailedException("ATHR-001", USER_HAS_NOT_SIGNED_IN);
+        } else if(authToken.getLogoutAt() != null) {
+            throw new AuthorizationFailedException("ATHR-002", "User is signed out.Sign in first to edit an answer");
+        }
 
         UserEntity currentUser = authToken.getUser();
 
@@ -91,7 +102,12 @@ public class AnswerBusinessService {
 
         // Authority check
         // may throw ATHR-001 or ATHR-002
-        UserAuthTokenEntity authToken = userDao.isValidActiveAuthToken(authCode, ActionType.DELETE_ANSWER);
+        UserAuthTokenEntity authToken = userDao.queryAuthToken(authCode);//, ActionType.CREATE_ANSWER);
+        if(authToken == null) {
+            throw new AuthorizationFailedException("ATHR-001", USER_HAS_NOT_SIGNED_IN);
+        } else if(authToken.getLogoutAt() != null) {
+            throw new AuthorizationFailedException("ATHR-002", "User is signed out.Sign in first to delete an answer");
+        }
 
         UserEntity currentUser = authToken.getUser();
 
@@ -119,7 +135,12 @@ public class AnswerBusinessService {
 
         // Authority check
         // may throw ATHR-001 or ATHR-002
-        userDao.isValidActiveAuthToken(authCode, ActionType.GET_ALL_ANSWER_TO_QUESTION);
+        UserAuthTokenEntity authToken = userDao.queryAuthToken(authCode);//, ActionType.CREATE_ANSWER);
+        if(authToken == null) {
+            throw new AuthorizationFailedException("ATHR-001", USER_HAS_NOT_SIGNED_IN);
+        } else if(authToken.getLogoutAt() != null) {
+            throw new AuthorizationFailedException("ATHR-002", "User is signed out.Sign in first to edit an answer");
+        }
 
         return answerDao.getAllAnswersByQuestionUuid(searchedQuestion.getId());
 
